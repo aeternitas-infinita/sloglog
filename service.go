@@ -34,7 +34,7 @@ func LogWithContext(ctx context.Context, level slog.Level, msg string, args ...a
 		attrs = append(attrs, slog.String("trace_id", traceID))
 	}
 
-	for i := 0; i < len(args); i++ {
+	for i := range args {
 		if attr, ok := args[i].(slog.Attr); ok {
 			attrs = append(attrs, attr)
 		}
@@ -42,18 +42,14 @@ func LogWithContext(ctx context.Context, level slog.Level, msg string, args ...a
 
 	_, file, line, ok := runtime.Caller(2)
 	if !ok {
-		file = "???"
+		file = "unknown"
 		line = 0
 	}
 
+	attrs = append(attrs, slog.String("source", fmt.Sprintf("[%s:%d]", file, line)))
+
 	record := slog.NewRecord(time.Now(), level, msg, 0)
 	record.AddAttrs(attrs...)
-
-	record.AddAttrs(slog.Group("source",
-		slog.String("file", file),
-		slog.Int("line", line),
-	))
-
 	Logger.Handler().Handle(ctx, record)
 }
 
@@ -74,42 +70,12 @@ func ErrorContext(ctx context.Context, msg string, args ...any) {
 }
 
 func InitLogger(level slog.Level) {
-	replace := func(groups []string, a slog.Attr) slog.Attr {
-		if a.Key == slog.SourceKey || (len(groups) > 0 && groups[0] == "source") {
-			if source, ok := a.Value.Any().(*slog.Source); ok {
-				return slog.String("source", fmt.Sprintf("[%s:%d]", source.File, source.Line))
-			}
-			if len(groups) > 0 && groups[0] == "source" {
-				switch a.Key {
-				case "file":
-					file := a.Value.String()
-					line := 0
-					// Find the line number from attrs
-					for _, g := range groups {
-						if g == "line" {
-							line = int(a.Value.Int64())
-							break
-						}
-					}
-					return slog.String("source", fmt.Sprintf("[%s:%d]", file, line))
-				}
-			}
-		}
-		return a
-	}
-
 	opts := &slog.HandlerOptions{
-		AddSource:   false,
-		Level:       level,
-		ReplaceAttr: replace,
-	}
-	handler := slog.NewTextHandler(os.Stdout, opts)
-
-	optsMin := &slog.HandlerOptions{
 		AddSource: false,
 		Level:     level,
 	}
-	handlerMin := slog.NewTextHandler(os.Stdout, optsMin)
+	handler := slog.NewTextHandler(os.Stdout, opts)
+	handlerMin := slog.NewTextHandler(os.Stdout, opts)
 
 	Logger = slog.New(handler)
 	LoggerMin = slog.New(handlerMin)
