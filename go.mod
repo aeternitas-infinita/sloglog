@@ -2,10 +2,7 @@ go 1.24.4
 
 module github.com/aeternitas-infinita/sloglog
 
-require (
-	github.com/joho/godotenv v1.5.1
-	github.com/valyala/fasthttp v1.62.0
-)
+require github.com/valyala/fasthttp v1.62.0
 
 require (
 	github.com/andybalholm/brotli v1.1.1 // indirect

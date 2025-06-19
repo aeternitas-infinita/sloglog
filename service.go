@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log/slog"
 	"os"
+	"time"
 
 	"github.com/valyala/fasthttp"
 )
@@ -26,13 +27,23 @@ func GetTraceID(ctx any) string {
 
 func LogWithContext(ctx context.Context, level slog.Level, msg string, args ...any) {
 	traceID := GetTraceID(ctx)
+	attrs := make([]slog.Attr, 0, len(args)+1)
+
 	if traceID != "" {
-		newArgs := make([]any, 0, len(args)+1)
-		newArgs = append(newArgs, slog.String("trace_id", traceID))
-		newArgs = append(newArgs, args...)
-		args = newArgs
+		attrs = append(attrs, slog.String("trace_id", traceID))
 	}
-	Logger.Log(ctx, level, msg, args...)
+
+	for i := 0; i < len(args); i += 2 {
+		if i+1 < len(args) {
+			if k, ok := args[i].(string); ok {
+				attrs = append(attrs, slog.Any(k, args[i+1]))
+			}
+		}
+	}
+
+	record := slog.NewRecord(time.Now(), level, msg, 2)
+	record.AddAttrs(attrs...)
+	Logger.Handler().Handle(ctx, record)
 }
 
 func InfoContext(ctx context.Context, msg string, args ...any) {
