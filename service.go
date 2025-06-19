@@ -6,7 +6,6 @@ import (
 	"log/slog"
 	"os"
 
-	"github.com/joho/godotenv"
 	"github.com/valyala/fasthttp"
 )
 
@@ -52,29 +51,7 @@ func ErrorContext(ctx context.Context, msg string, args ...any) {
 	LogWithContext(ctx, slog.LevelError, msg, args...)
 }
 
-func init() {
-	var level slog.Level
-	envLoggerLvl := os.Getenv("LOGGER_LEVEL")
-	if envLoggerLvl == "" {
-		err := godotenv.Load()
-		if err != nil {
-			slog.Error("error loading dotenv and logger level is not set", slog.Any("info", err))
-			os.Exit(1)
-		} else {
-			envLoggerLvl = os.Getenv("LOGGER_LEVEL")
-		}
-	}
-	switch envLoggerLvl {
-	case "debug":
-		level = slog.LevelDebug
-	case "warn":
-		level = slog.LevelWarn
-	case "error":
-		level = slog.LevelError
-	default:
-		level = slog.LevelInfo
-	}
-
+func InitLogger(level slog.Level) {
 	replace := func(groups []string, a slog.Attr) slog.Attr {
 		if a.Key == slog.SourceKey {
 			source := a.Value.Any().(*slog.Source)
@@ -89,6 +66,7 @@ func init() {
 		ReplaceAttr: replace,
 	}
 	handler := slog.NewTextHandler(os.Stdout, opts)
+
 	optsMin := &slog.HandlerOptions{
 		AddSource: false,
 		Level:     level,
@@ -97,6 +75,8 @@ func init() {
 
 	Logger = slog.New(handler)
 	LoggerMin = slog.New(handlerMin)
+}
 
-	return
+func init() {
+	InitLogger(slog.LevelInfo)
 }
