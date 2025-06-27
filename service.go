@@ -8,6 +8,7 @@ import (
 	"runtime"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/valyala/fasthttp"
 )
 
@@ -23,16 +24,43 @@ var (
 	Min           *Logger
 )
 
+// TraceIDKey is the key used to store trace IDs in context
+const TraceIDKey = "trace_id"
+
+// TraceIDToFHCtx adds a new trace ID to fasthttp context
+func TraceIDToFHCtx(ctx *fasthttp.RequestCtx) {
+	ctx.SetUserValue(TraceIDKey, uuid.New().String())
+}
+
+// CtxWithTraceID creates a new context with timeout and trace ID
+func CtxWithTraceID(parent context.Context, timeout time.Duration) (context.Context, context.CancelFunc) {
+	ctx, cancel := context.WithTimeout(parent, timeout)
+	return context.WithValue(ctx, TraceIDKey, uuid.New().String()), cancel
+}
+
 // GetTraceID extracts trace ID from context
 func GetTraceID(ctx any) string {
 	if ctx == nil {
 		return ""
 	}
+
+	// Try to get trace ID from fasthttp.RequestCtx
 	if requestCtx, ok := ctx.(*fasthttp.RequestCtx); ok {
-		if v := requestCtx.UserValue("trace_id"); v != nil {
+		if v := requestCtx.UserValue(TraceIDKey); v != nil {
 			return v.(string)
 		}
+		return ""
 	}
+
+	// Try to get trace ID from context.Context
+	if stdCtx, ok := ctx.(context.Context); ok {
+		if v := stdCtx.Value(TraceIDKey); v != nil {
+			if traceID, ok := v.(string); ok {
+				return traceID
+			}
+		}
+	}
+
 	return ""
 }
 
@@ -70,42 +98,42 @@ func (l *Logger) log(ctx context.Context, callerSkip int, level slog.Level, msg 
 
 // Debug logs at debug level without context
 func (l *Logger) Debug(msg string, args ...any) {
-	l.log(context.Background(), 2, slog.LevelDebug, msg, args...)
+	l.log(context.Background(), 3, slog.LevelDebug, msg, args...)
 }
 
 // Info logs at info level without context
 func (l *Logger) Info(msg string, args ...any) {
-	l.log(context.Background(), 2, slog.LevelInfo, msg, args...)
+	l.log(context.Background(), 3, slog.LevelInfo, msg, args...)
 }
 
 // Warn logs at warn level without context
 func (l *Logger) Warn(msg string, args ...any) {
-	l.log(context.Background(), 2, slog.LevelWarn, msg, args...)
+	l.log(context.Background(), 3, slog.LevelWarn, msg, args...)
 }
 
 // Error logs at error level without context
 func (l *Logger) Error(msg string, args ...any) {
-	l.log(context.Background(), 2, slog.LevelError, msg, args...)
+	l.log(context.Background(), 3, slog.LevelError, msg, args...)
 }
 
 // DebugCtx logs at debug level with context
 func (l *Logger) DebugCtx(ctx context.Context, msg string, args ...any) {
-	l.log(ctx, 2, slog.LevelDebug, msg, args...)
+	l.log(ctx, 3, slog.LevelDebug, msg, args...)
 }
 
 // InfoCtx logs at info level with context
 func (l *Logger) InfoCtx(ctx context.Context, msg string, args ...any) {
-	l.log(ctx, 2, slog.LevelInfo, msg, args...)
+	l.log(ctx, 3, slog.LevelInfo, msg, args...)
 }
 
 // WarnCtx logs at warn level with context
 func (l *Logger) WarnCtx(ctx context.Context, msg string, args ...any) {
-	l.log(ctx, 2, slog.LevelWarn, msg, args...)
+	l.log(ctx, 3, slog.LevelWarn, msg, args...)
 }
 
 // ErrorCtx logs at error level with context
 func (l *Logger) ErrorCtx(ctx context.Context, msg string, args ...any) {
-	l.log(ctx, 2, slog.LevelError, msg, args...)
+	l.log(ctx, 3, slog.LevelError, msg, args...)
 }
 
 // Package-level convenience functions that use the default logger
