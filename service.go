@@ -80,7 +80,7 @@ func (l *Logger) log(ctx context.Context, callerSkip int, level slog.Level, msg 
 	if l.addSource {
 		_, file, line, ok := runtime.Caller(callerSkip)
 		if ok {
-			attrs = append(attrs, slog.String("source", fmt.Sprintf("%s:%d", file, line)))
+			attrs = append(attrs, slog.String("source", fmt.Sprintf("[%s:%d]", file, line)))
 		}
 	}
 
