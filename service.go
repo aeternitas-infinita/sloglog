@@ -396,8 +396,8 @@ func (h *CustomHandler) Enabled(ctx context.Context, level slog.Level) bool {
 
 // Handle handles the Record
 func (h *CustomHandler) Handle(ctx context.Context, r slog.Record) error {
-	// Format timestamp in a more readable format
-	timestamp := r.Time.Format("15:04:05.000")
+	// Format timestamp with full date and timezone
+	timestamp := r.Time.Format("2006-01-02 15:04:05 MST")
 
 	// Format level with colors for console
 	level := formatLevelWithColor(r.Level)

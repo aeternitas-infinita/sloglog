@@ -18,7 +18,7 @@ The library provides enhanced log formatting for better readability:
 
 ### Console Output Features:
 - **Colored log levels** for quick visual identification
-- **Compact timestamps** (HH:MM:SS.mmm format)
+- **Full timestamps** (YYYY-MM-DD HH:MM:SS TZ format) with timezone
 - **Inline attributes** for trace IDs and other metadata
 - **ANSI colors** for different log levels (INFO=blue, WARN=yellow, ERROR=red, DEBUG=gray)
 
@@ -161,9 +161,9 @@ export LOG_DIR_PATH="/var/log/myapp"
 
 **Console Output (compact with colors):**
 ```
-10:30:45.123 [INFO]  Application started
-10:30:45.124 [WARN]  This is a warning message  
-10:30:45.125 [INFO]  Processing user request trace_id=550e8400-e29b-41d4-a716-446655440000
+2025-07-08 10:30:45 UTC [INFO]  Application started
+2025-07-08 10:30:45 UTC [WARN]  This is a warning message  
+2025-07-08 10:30:45 UTC [INFO]  Processing user request trace_id=550e8400-e29b-41d4-a716-446655440000
 ```
 
 ## Log Levels
