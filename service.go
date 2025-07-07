@@ -396,6 +396,11 @@ func (h *CustomHandler) Enabled(ctx context.Context, level slog.Level) bool {
 
 // Handle handles the Record
 func (h *CustomHandler) Handle(ctx context.Context, r slog.Record) error {
+	// Check if we should handle this level
+	if !h.Enabled(ctx, r.Level) {
+		return nil
+	}
+
 	// Format timestamp with full date and timezone
 	timestamp := r.Time.Format("2006-01-02 15:04:05 MST")
 
