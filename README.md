@@ -10,6 +10,24 @@ A structured logging library for Go that extends the standard `log/slog` package
 - **Context-aware logging** 
 - **Source code location** tracking
 - **FastHTTP integration**
+- **Improved readability** with better formatting and colors
+
+## Log Formatting
+
+The library provides enhanced log formatting for better readability:
+
+### Console Output Features:
+- **Colored log levels** for quick visual identification
+- **Compact timestamps** (HH:MM:SS.mmm format)
+- **Inline attributes** for trace IDs and other metadata
+- **ANSI colors** for different log levels (INFO=blue, WARN=yellow, ERROR=red, DEBUG=gray)
+
+### File Output Features:
+- **Structured layout** with clear timestamp format (YYYY-MM-DD HH:MM:SS.mmm)
+- **Tree-like attribute display** using `├─` and `└─` symbols
+- **Multi-line format** for better readability
+- **Fixed-width level indicators** for consistent alignment
+- **Detailed source information** on separate lines
 
 ## Installation
 
@@ -130,10 +148,22 @@ export LOG_DIR_PATH="/var/log/myapp"
 
 ### Example Log File Output
 
+**File Output (structured and detailed):**
 ```
-time=2025-07-07T10:30:45.123Z level=INFO msg="Application started" source=[/path/to/main.go:15]
-time=2025-07-07T10:30:45.124Z level=WARN msg="This is a warning" source=[/path/to/main.go:16]
-time=2025-07-07T10:30:45.125Z level=INFO msg="Processing request" trace_id=550e8400-e29b-41d4-a716-446655440000 source=[/path/to/handler.go:25]
+[2025-07-08 10:30:45.123] INFO  | Application started
+  ├─ source: [/path/to/main.go:15]
+[2025-07-08 10:30:45.124] WARN  | This is a warning message
+  ├─ source: [/path/to/main.go:16]
+[2025-07-08 10:30:45.125] INFO  | Processing user request
+  ├─ trace_id: 550e8400-e29b-41d4-a716-446655440000
+  └─ source: [/path/to/handler.go:25]
+```
+
+**Console Output (compact with colors):**
+```
+10:30:45.123 [INFO]  Application started
+10:30:45.124 [WARN]  This is a warning message  
+10:30:45.125 [INFO]  Processing user request trace_id=550e8400-e29b-41d4-a716-446655440000
 ```
 
 ## Log Levels

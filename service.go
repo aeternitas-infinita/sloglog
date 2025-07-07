@@ -3,10 +3,12 @@ package sloglog
 import (
 	"context"
 	"fmt"
+	"io"
 	"log/slog"
 	"os"
 	"path/filepath"
 	"runtime"
+	"strings"
 	"sync"
 	"time"
 
@@ -207,14 +209,16 @@ func InitLogger(level slog.Level) {
 		Level:     level,
 	}
 
-	handler := slog.NewTextHandler(os.Stdout, opts)
+	// Use custom handler for better formatting
+	handler := NewCustomHandler(os.Stdout, opts, true)
 	defaultLogger = &Logger{
 		logger:    slog.New(handler),
 		addSource: true,
 	}
 
+	minHandler := NewCustomHandler(os.Stdout, opts, false)
 	Min = &Logger{
-		logger:    slog.New(handler),
+		logger:    slog.New(minHandler),
 		addSource: false,
 	}
 }
@@ -316,28 +320,156 @@ func (fl *FileLogger) writeToFile(entry string) {
 
 // formatLogEntry formats a log record for file output
 func (l *Logger) formatLogEntry(record slog.Record) string {
-	var buf []byte
+	var parts []string
 
-	// Add timestamp
-	buf = append(buf, "time="...)
-	buf = append(buf, record.Time.Format(time.RFC3339)...)
+	// Format timestamp in a more readable format
+	timestamp := record.Time.Format("2006-01-02 15:04:05.000")
 
-	// Add level
-	buf = append(buf, " level="...)
-	buf = append(buf, record.Level.String()...)
+	// Format level with fixed width and color-like indicators
+	level := formatLevel(record.Level)
 
-	// Add message
-	buf = append(buf, " msg="...)
-	buf = append(buf, record.Message...)
+	// Build the main log line
+	mainLine := fmt.Sprintf("[%s] %-5s | %s", timestamp, level, record.Message)
+	parts = append(parts, mainLine)
 
-	// Add attributes
+	// Add attributes on separate indented lines if present
+	var attrs []string
 	record.Attrs(func(a slog.Attr) bool {
-		buf = append(buf, " "...)
-		buf = append(buf, a.Key...)
-		buf = append(buf, "="...)
-		buf = append(buf, a.Value.String()...)
+		attrs = append(attrs, fmt.Sprintf("  ├─ %s: %s", a.Key, a.Value.String()))
 		return true
 	})
 
-	return string(buf)
+	if len(attrs) > 0 {
+		// Change the last attribute prefix to indicate end
+		if len(attrs) > 1 {
+			attrs[len(attrs)-1] = strings.Replace(attrs[len(attrs)-1], "├─", "└─", 1)
+		}
+		parts = append(parts, attrs...)
+	}
+
+	return strings.Join(parts, "\n")
+}
+
+// formatLevel formats the log level with consistent width
+func formatLevel(level slog.Level) string {
+	switch level {
+	case slog.LevelDebug:
+		return "DEBUG"
+	case slog.LevelInfo:
+		return "INFO"
+	case slog.LevelWarn:
+		return "WARN"
+	case slog.LevelError:
+		return "ERROR"
+	default:
+		return level.String()
+	}
+}
+
+// CustomHandler implements slog.Handler for better formatting
+type CustomHandler struct {
+	opts      slog.HandlerOptions
+	writer    io.Writer
+	addSource bool
+}
+
+// NewCustomHandler creates a new custom handler
+func NewCustomHandler(w io.Writer, opts *slog.HandlerOptions, addSource bool) *CustomHandler {
+	if opts == nil {
+		opts = &slog.HandlerOptions{}
+	}
+	return &CustomHandler{
+		opts:      *opts,
+		writer:    w,
+		addSource: addSource,
+	}
+}
+
+// Enabled reports whether the handler handles records at the given level
+func (h *CustomHandler) Enabled(ctx context.Context, level slog.Level) bool {
+	minLevel := slog.LevelInfo
+	if h.opts.Level != nil {
+		minLevel = h.opts.Level.Level()
+	}
+	return level >= minLevel
+}
+
+// Handle handles the Record
+func (h *CustomHandler) Handle(ctx context.Context, r slog.Record) error {
+	// Format timestamp in a more readable format
+	timestamp := r.Time.Format("15:04:05.000")
+
+	// Format level with colors for console
+	level := formatLevelWithColor(r.Level)
+
+	// Build the main log line
+	var parts []string
+	mainLine := fmt.Sprintf("%s %s %s", timestamp, level, r.Message)
+
+	// Add source information if enabled
+	if h.addSource {
+		if h.opts.AddSource {
+			// Source info is already in attributes
+			r.Attrs(func(a slog.Attr) bool {
+				if a.Key == "source" {
+					mainLine += fmt.Sprintf(" %s", a.Value.String())
+					return false // Don't process this attribute again
+				}
+				return true
+			})
+		}
+	}
+
+	parts = append(parts, mainLine)
+
+	// Add other attributes on the same line for console (more compact)
+	var attrs []string
+	r.Attrs(func(a slog.Attr) bool {
+		if a.Key != "source" { // Skip source as it's already handled
+			attrs = append(attrs, fmt.Sprintf("%s=%s", a.Key, a.Value.String()))
+		}
+		return true
+	})
+
+	if len(attrs) > 0 {
+		parts[0] += " " + strings.Join(attrs, " ")
+	}
+
+	// Write to output
+	fmt.Fprintln(h.writer, strings.Join(parts, "\n"))
+	return nil
+}
+
+// WithAttrs returns a new Handler whose attributes consist of h's attributes followed by attrs
+func (h *CustomHandler) WithAttrs(attrs []slog.Attr) slog.Handler {
+	return h // Simplified implementation
+}
+
+// WithGroup returns a new Handler with the given group appended to the receiver's existing groups
+func (h *CustomHandler) WithGroup(name string) slog.Handler {
+	return h // Simplified implementation
+}
+
+// formatLevelWithColor formats the log level with ANSI colors for console
+func formatLevelWithColor(level slog.Level) string {
+	const (
+		colorReset  = "\033[0m"
+		colorRed    = "\033[31m"
+		colorYellow = "\033[33m"
+		colorBlue   = "\033[34m"
+		colorGray   = "\033[37m"
+	)
+
+	switch level {
+	case slog.LevelDebug:
+		return colorGray + "[DEBUG]" + colorReset
+	case slog.LevelInfo:
+		return colorBlue + "[INFO] " + colorReset
+	case slog.LevelWarn:
+		return colorYellow + "[WARN] " + colorReset
+	case slog.LevelError:
+		return colorRed + "[ERROR]" + colorReset
+	default:
+		return fmt.Sprintf("[%s]", level.String())
+	}
 }
