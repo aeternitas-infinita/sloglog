@@ -464,9 +464,9 @@ func formatLevelWithColor(level slog.Level) string {
 	case slog.LevelDebug:
 		return colorGray + "[DEBUG]" + colorReset
 	case slog.LevelInfo:
-		return colorBlue + "[INFO] " + colorReset
+		return colorBlue + "[INFO]" + colorReset
 	case slog.LevelWarn:
-		return colorYellow + "[WARN] " + colorReset
+		return colorYellow + "[WARN]" + colorReset
 	case slog.LevelError:
 		return colorRed + "[ERROR]" + colorReset
 	default:
