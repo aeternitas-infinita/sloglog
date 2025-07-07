@@ -329,7 +329,7 @@ func (l *Logger) formatLogEntry(record slog.Record) string {
 	level := formatLevel(record.Level)
 
 	// Build the main log line
-	mainLine := fmt.Sprintf("[%s] %-5s | %s", timestamp, level, record.Message)
+	mainLine := fmt.Sprintf("[%s] %s | %s", timestamp, level, record.Message)
 	parts = append(parts, mainLine)
 
 	// Add attributes on separate indented lines if present
