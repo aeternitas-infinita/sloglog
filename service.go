@@ -205,7 +205,7 @@ func ErrorCtx(ctx context.Context, msg string, args ...any) {
 // InitLogger initializes the loggers with the specified level
 func InitLogger(level slog.Level) {
 	opts := &slog.HandlerOptions{
-		AddSource: false,
+		AddSource: true, // Changed to true to include source information
 		Level:     level,
 	}
 
