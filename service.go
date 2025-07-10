@@ -202,6 +202,11 @@ func ErrorCtx(ctx context.Context, msg string, args ...any) {
 	defaultLogger.ErrorCtx(ctx, msg, args...)
 }
 
+// ErrAtr creates a slog.Attr for an error
+func ErrAtr(err error) slog.Attr {
+	return slog.Any("error", err)
+}
+
 // InitLogger initializes the loggers with the specified level
 func InitLogger(level slog.Level) {
 	opts := &slog.HandlerOptions{
